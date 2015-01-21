@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <netinet/in.h>
 #include <stdio.h>
+#include <iostream>
 
 // book page 18
 int main (int argc, char* argv[]) {
@@ -16,11 +17,13 @@ int main (int argc, char* argv[]) {
 	address.sin_addr.s_addr = htonl(INADDR_ANY); // handle big or little endian
 	address.sin_port = htons(atoi(argv[1]));
 
+    // assign a port number to the socket with bind()
     if (bind(sock, (struct sockaddr*) &address, sizeof(address)) < 0) {
         perror("bind error");
         exit(1);
     }
 
+    // tell sys to allow connection to be made to that port, using listen()
     if (listen(sock, 128) < 0) {
         perror("listen fail");
         exit(1);
@@ -30,6 +33,7 @@ int main (int argc, char* argv[]) {
         struct sockaddr_in client_address = {0};
         socklen_t ca_len = 0;
 
+        // call accept() to get a new socket for each client connection
         int csock = accept(sock, (struct sockaddr*) &client_address, &ca_len);
 
         if (csock < 0) {
@@ -41,6 +45,7 @@ int main (int argc, char* argv[]) {
             char buf[BUFSIZ];
             ssize_t bytes_read;
 
+            // communicate with client via new socket using send(), recv()
             do {
                 bytes_read = recv(csock, &buf, sizeof(buf) - 1, 0);
 

@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include <iostream>
 
+using namespace std;
+
 // book page 18
 int main (int argc, char* argv[]) {
 	if (argc != 2) exit(1);
@@ -42,12 +44,12 @@ int main (int argc, char* argv[]) {
         }
 
         if (fork() == 0) {
-            char buf[BUFSIZ];
+            string buf (BUFSIZ, 0);
             ssize_t bytes_read;
 
             // communicate with client via new socket using send(), recv()
             do {
-                bytes_read = recv(csock, &buf, sizeof(buf) - 1, 0);
+                bytes_read = recv(csock, &buf, BUFSIZ - 1, 0);
 
                 if (bytes_read < 0) {
                     perror("recv failed");

@@ -59,6 +59,9 @@ int main (int argc, char* argv[]) {
                 if (bytes_read < 0) {
                     perror("recv failed");
                     exit(1);
+                } else if (bytes_read == 0) {
+                    cerr << "client disconnected" << endl;
+                    exit(1);
                 }
 
                 ssize_t bytes_sent = send(csock, &buf, bytes_read, 0);

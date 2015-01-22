@@ -64,6 +64,8 @@ int main (int argc, char* argv[]) {
                     exit(1);
                 }
 
+                cout << buf << endl;
+
                 ssize_t bytes_sent = send(csock, &buf, bytes_read, 0);
 
                 if (bytes_sent < 0) {

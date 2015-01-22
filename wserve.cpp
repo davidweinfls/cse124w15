@@ -54,6 +54,7 @@ int main (int argc, char* argv[]) {
 
             // communicate with client via new socket using send(), recv()
             do {
+                cout << "recv called" << endl;
                 bytes_read = recv(csock, &buf, BUFSIZ - 1, 0);
 
                 if (bytes_read < 0) {

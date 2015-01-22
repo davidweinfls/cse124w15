@@ -15,7 +15,9 @@ int main (int argc, char* argv[]) {
     }
 
     int sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    
+    const int so_reuseaddr = 1;
+    int rtn = setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (void*)&so_reuseaddr, sizeof(so_reuseaddr));
+
     struct sockaddr_in address = {0};
     
     address.sin_family = AF_INET;
@@ -57,7 +59,12 @@ int main (int argc, char* argv[]) {
                 if (bytes_read < 0) {
                     perror("recv failed");
                     exit(1);
+                } else if (bytes_read == 0) {
+                    cerr << "client disconnected" << endl;
+                    exit(1);
                 }
+
+                cout << buf << endl;
 
                 ssize_t bytes_sent = send(csock, &buf, bytes_read, 0);
 

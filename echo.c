@@ -8,17 +8,19 @@
 
 using namespace std;
 
-// book page 18
 int main (int argc, char* argv[]) {
-	if (argc != 2) exit(1);
+    if (argc != 2) {
+        cerr << "No port specified." << endl << "Example: " << argv[0] << " [port]" << endl;
+        exit(1);
+    }
 
-	int sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	
-	struct sockaddr_in address = {0};
-	
-	address.sin_family = AF_INET;
-	address.sin_addr.s_addr = htonl(INADDR_ANY); // handle big or little endian
-	address.sin_port = htons(atoi(argv[1]));
+    int sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    
+    struct sockaddr_in address = {0};
+    
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = htonl(INADDR_ANY); // handle big or little endian
+    address.sin_port = htons(atoi(argv[1]));
 
     // assign a port number to the socket with bind()
     if (bind(sock, (struct sockaddr*) &address, sizeof(address)) < 0) {
@@ -72,5 +74,4 @@ int main (int argc, char* argv[]) {
             close(csock);
         }
     } // end of while
-
 }

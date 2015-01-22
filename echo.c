@@ -4,6 +4,7 @@
 #include <netinet/in.h>
 #include <stdio.h>
 #include <iostream>
+#include <unistd.h>
 
 using namespace std;
 

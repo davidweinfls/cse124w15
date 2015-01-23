@@ -4,6 +4,7 @@
 #include <netinet/in.h>
 #include <stdio.h>
 #include <iostream>
+#include <string>
 #include <unistd.h>
 
 using namespace std;
@@ -43,19 +44,23 @@ int main (int argc, char* argv[]) {
         // call accept() to get a new socket for each client connection
         int csock = accept(sock, (struct sockaddr*) &client_address, &ca_len);
 
+
         if (csock < 0) {
             perror("accept failed");
             exit(1);
         }
 
-        if (fork() == 0) {
-            string buf (BUFSIZ, 0);
+        //if (fork() == 0) {
+            //string buf (BUFSIZ, 0);
+            char buf[BUFSIZ];
             ssize_t bytes_read;
 
             // communicate with client via new socket using send(), recv()
             do {
                 cout << "recv called" << endl;
                 bytes_read = recv(csock, &buf, BUFSIZ - 1, 0);
+
+                cout << buf << endl;
 
                 if (bytes_read < 0) {
                     perror("recv failed");
@@ -64,8 +69,6 @@ int main (int argc, char* argv[]) {
                     cerr << "client disconnected" << endl;
                     exit(1);
                 }
-
-                cout << buf << endl;
 
                 ssize_t bytes_sent = send(csock, &buf, bytes_read, 0);
 
@@ -80,6 +83,6 @@ int main (int argc, char* argv[]) {
             } while (bytes_read > 0);
 
             close(csock);
-        }
+        //}
     } // end of while
 }

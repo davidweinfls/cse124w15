@@ -4,7 +4,7 @@
 #include <netinet/in.h>
 #include <stdio.h>
 #include <iostream>
-#include <string>
+#include <string.h>
 #include <unistd.h>
 #include <fstream>
 #include <sstream>
@@ -12,31 +12,67 @@
 
 using namespace std;
 
-string checkCRLF (const char buf[]) {
-    map<string, string> m;
+#define CRLF "\r\n"
 
-    istringstream resp(buf);
-    string s;
-    string::size_type index;
-    string file;
+void parseRequest(const string data, string& url, string& protocol) {
+    size_t prev = 0, cur = 0;
+    cur = data.find_first_of(" ", prev);
+    prev = cur + 1;  // skip the GET method
+    // get the url
+    cur = data.find_first_of(" ", prev);
+    url = data.substr(prev, cur - prev);
+    prev = cur + 1;
+    // get the protocol version
+    cur = data.find_first_of(CRLF, prev);
+    protocol = data.substr(prev, cur - prev);
+    prev = cur + 1;
+}
 
-    while (getline(resp, s) && s != "\r") {
-        cout << "this line is: " << s << endl;
-        size_t found = s.find("GET");
-        // get the url after GET.
-        // start from char 'G', there are 4 chars, 'G' 'E' 'T' ' '
-        if (found != string::npos) {
-            size_t http_version = s.find("HTTP");
-            if (http_version != string::npos) {
-                file = s.substr(found + 4, http_version - 5);
-                cout << file << endl;
-            } else {
-                file = s.substr(found + 4);
-                cout << file << endl;
-            }
-        }
+bool findFile(const string url, string& responseBody, size_t& length) {
+    ifstream ifs, errfs;
+    string filename;
+
+    if (url[0] == '/' && url.size() == 1) {
+        filename = "index.html";
+    } else if (url[0] == '/') {
+        filename = url.substr(1);
     }
-    return file;
+
+    // open file
+    ifs.open(filename.c_str(), ifstream::in);
+    // TODO: check if file exist, if permitted
+    if (ifs.is_open()) {
+        ifs.seekg(0, ifstream::end);
+        length = ifs.tellg();
+        ifs.seekg(0, ifstream::beg);
+
+        char* buf = new char[length];
+        memset(buf, '\0', length);
+
+        if (ifs.good()) {
+            ifs.read(buf, length);
+        }
+        responseBody.append(buf, length);
+    } else {
+        ifs.close();
+        cerr << "cannot open file or file is protected" << endl;
+        return false;
+    }
+
+}
+
+void prepareResponse(string& response, const string responseBody, const size_t length, const string protocol, bool status) {
+    ostringstream s;
+    if (status) {
+        s << protocol << " 200 " << "OK\r\n";
+    } else {
+        // report 4XX error
+    }
+    s << "Content-Length: " << length << CRLF;
+    s << "Content-Type: " << "text/html" << CRLF;
+    s << CRLF;
+    s << responseBody << CRLF;
+    response = s.str();
 }
 
 int main (int argc, char* argv[]) {
@@ -81,19 +117,13 @@ int main (int argc, char* argv[]) {
         }
 
         //if (fork() == 0) {
-            //string buf (BUFSIZ, 0);
             char buf[BUFSIZ];
             ssize_t bytes_read;
+            string data;
 
             // communicate with client via new socket using send(), recv()
             do {
                 bytes_read = recv(csock, &buf, BUFSIZ - 1, 0);
-
-                //cout << "what's inside our buffer: " << buf << endl;
-
-                // parse buffer to get the file location
-                // need to consider multiple HTTP requests in one buffer
-                string file = checkCRLF(buf);
 
                 if (bytes_read < 0) {
                     perror("recv failed");
@@ -103,7 +133,29 @@ int main (int argc, char* argv[]) {
                     exit(1);
                 }
 
-                ssize_t bytes_sent = send(csock, &buf, bytes_read, 0);
+                data.append(buf, bytes_read);
+
+                // parse received request
+                string url, protocol;
+                parseRequest(data, url, protocol);
+
+                // find html file and load
+                size_t length;
+                string responseBody;
+                bool success = findFile(url, responseBody, length);
+
+                // generate response buffer
+                string response;
+                prepareResponse(response, responseBody, length,
+                        protocol, success);
+
+                // prepare response, convert to c_str
+                char *buf = new char[response.size()];
+                memset(buf, '\0', response.size());
+                memcpy(buf, response.c_str(), response.size());
+
+                // send response
+                ssize_t bytes_sent = send(csock, buf, response.size(), 0);
 
                 if (bytes_sent < 0) {
                     perror("sent failed");

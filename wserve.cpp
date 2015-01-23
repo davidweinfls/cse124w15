@@ -6,8 +6,38 @@
 #include <iostream>
 #include <string>
 #include <unistd.h>
+#include <fstream>
+#include <sstream>
+#include <map>
 
 using namespace std;
+
+string checkCRLF (const char buf[]) {
+    map<string, string> m;
+
+    istringstream resp(buf);
+    string s;
+    string::size_type index;
+    string file;
+
+    while (getline(resp, s) && s != "\r") {
+        cout << "this line is: " << s << endl;
+        size_t found = s.find("GET");
+        // get the url after GET.
+        // start from char 'G', there are 4 chars, 'G' 'E' 'T' ' '
+        if (found != string::npos) {
+            size_t http_version = s.find("HTTP");
+            if (http_version != string::npos) {
+                file = s.substr(found + 4, http_version - 5);
+                cout << file << endl;
+            } else {
+                file = s.substr(found + 4);
+                cout << file << endl;
+            }
+        }
+    }
+    return file;
+}
 
 int main (int argc, char* argv[]) {
     if (argc != 2) {
@@ -59,7 +89,11 @@ int main (int argc, char* argv[]) {
             do {
                 bytes_read = recv(csock, &buf, BUFSIZ - 1, 0);
 
-                cout << buf << endl;
+                //cout << "what's inside our buffer: " << buf << endl;
+
+                // parse buffer to get the file location
+                // need to consider multiple HTTP requests in one buffer
+                string file = checkCRLF(buf);
 
                 if (bytes_read < 0) {
                     perror("recv failed");

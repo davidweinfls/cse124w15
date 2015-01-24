@@ -8,13 +8,15 @@
 #include <unistd.h>
 #include <fstream>
 #include <sstream>
-#include <map>
 
 using namespace std;
 
 #define CRLF "\r\n"
 
 void parseRequest(const string data, string& url, string& protocol) {
+
+    cout << "Receiving request: " << data << endl;
+    
     size_t prev = 0, cur = 0;
     cur = data.find_first_of(" ", prev);
     prev = cur + 1;  // skip the GET method
@@ -53,6 +55,7 @@ bool findFile(const string url, string& responseBody, size_t& length) {
             ifs.read(buf, length);
         }
         responseBody.append(buf, length);
+        return true;
     } else {
         ifs.close();
         cerr << "cannot open file or file is protected" << endl;
@@ -61,18 +64,43 @@ bool findFile(const string url, string& responseBody, size_t& length) {
 
 }
 
-void prepareResponse(string& response, const string responseBody, const size_t length, const string protocol, bool status) {
+bool prepareResponse(string& response, const string responseBody, const size_t length, const string protocol, bool status) {
     ostringstream s;
     if (status) {
-        s << protocol << " 200 " << "OK\r\n";
+        s << CRLF << protocol << " 200 " << "OK\r\n";
+        s << "Content-Length: " << length << CRLF;
+        s << "Content-Type: " << "text/html" << CRLF;
+        s << CRLF;
+        s << responseBody << CRLF;
+        response = s.str();
+        return true;
     } else {
         // report 4XX error
+        return false;
     }
-    s << "Content-Length: " << length << CRLF;
-    s << "Content-Type: " << "text/html" << CRLF;
-    s << CRLF;
-    s << responseBody << CRLF;
-    response = s.str();
+}
+
+bool checkCRLF(const string buf, string& request, ssize_t length) {
+    //cout << "string passed in checkCRLF: " << buf << endl;
+    
+    int i = 0;
+    bool found = false;
+    while (buf[i] != '\n') {
+        if (buf[i] == '\n') {
+            cout << "found a new line" << endl;
+        } else if (buf[i] == '\r' && buf[i+1] == '\n') {
+            cout << "CRLF found!!!" << endl;
+            found = true;
+            break;
+        }
+        ++i;
+    }
+    if (found) {
+        request = request + buf.substr(0, i+1);
+    } else {
+        request = request + buf.substr(0, i);
+    }
+    return found;
 }
 
 int main (int argc, char* argv[]) {
@@ -110,35 +138,53 @@ int main (int argc, char* argv[]) {
         // call accept() to get a new socket for each client connection
         int csock = accept(sock, (struct sockaddr*) &client_address, &ca_len);
 
-
         if (csock < 0) {
             perror("accept failed");
             exit(1);
+        } else {
+            cout << "Connected with socket " << csock << endl;
         }
 
         //if (fork() == 0) {
             char buf[BUFSIZ];
             ssize_t bytes_read;
-            string data;
+            int count = 0;
+            string request; 
 
             // communicate with client via new socket using send(), recv()
             do {
-                cout << "recv called" << endl;
+                string url, protocol;
                 bytes_read = recv(csock, &buf, BUFSIZ - 1, 0);
 
+                //cout << "Buf contains: " << buf << endl;
+                //cout << "bytes read: " << bytes_read << endl;
+
                 if (bytes_read < 0) {
-                    perror("recv failed");
+                    cerr << "recv failed" << endl;
                     exit(1);
                 } else if (bytes_read == 0) {
                     cerr << "client disconnected" << endl;
                     exit(1);
                 }
 
-                data.append(buf, bytes_read);
+                // copy buffer content to temp string, clear buffer
+                string temp(buf);
+                memset(buf, '\0', BUFSIZ);
 
-                // parse received request
-                string url, protocol;
-                parseRequest(data, url, protocol);
+                // check CRLF and generate a request string
+                if (checkCRLF(temp, request, bytes_read)) {
+                    // found a CRLF
+                    ++count;
+                    if (count == 2) {
+                        // parse received request
+                        parseRequest(request, url, protocol);
+                        count = 0;
+                        request = temp.substr(temp.find_first_of("\r\n"));
+                    } else continue; // keep receiving the 2nd CRLF
+                } else {
+                    // no CRLF found, keep receiving
+                    continue;
+                }
 
                 // find html file and load
                 size_t length;
@@ -147,8 +193,12 @@ int main (int argc, char* argv[]) {
 
                 // generate response buffer
                 string response;
-                prepareResponse(response, responseBody, length,
-                        protocol, success);
+                if (prepareResponse(response, responseBody, length,
+                        protocol, success)) {
+                    cout << "\nGenerate HTTP response" << endl;
+                } else {
+                    cerr << "\nCannot generate HTTP response" << endl;
+                }
 
                 // prepare response, convert to c_str
                 char *buf = new char[response.size()];

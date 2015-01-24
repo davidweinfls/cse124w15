@@ -1,0 +1,9 @@
+1/23 discussion
+
+1. need PATH argument to specify the folder of all files
+2. nc, use carriage return
+3. curl, curl -v
+4. wget
+5. chrome inspector, network tab, show all http requests
+6. gvim /etc/hosts   #define your own domain
+

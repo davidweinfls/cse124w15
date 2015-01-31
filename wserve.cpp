@@ -30,9 +30,10 @@ void parseRequest(const string data, string& url, string& protocol) {
     prev = cur + 1;
 }
 
-bool findFile(const string url, string& responseBody, size_t& length) {
+int findFile(const string url, string& responseBody, size_t& length) {
     ifstream ifs, errfs;
     string filename;
+    int status = 0;
 
     if (url[0] == '/' && url.size() == 1) {
         filename = "index.html";
@@ -55,18 +56,21 @@ bool findFile(const string url, string& responseBody, size_t& length) {
             ifs.read(buf, length);
         }
         responseBody.append(buf, length);
-        return true;
-    } else {
+        status = 200;
+    } else if (!ifs.is_open()) { // 404 Not Found
         ifs.close();
         cerr << "cannot open file or file is protected" << endl;
-        return false;
-    }
+        status = 404;
+    } else { // 401 - Unauthorized
+        status = 401;
+    } // 403 Forbidden
 
+    return status;
 }
 
-bool prepareResponse(string& response, const string responseBody, const size_t length, const string protocol, bool status) {
+bool prepareResponse(string& response, const string responseBody, const size_t length, const string protocol, int status) {
     ostringstream s;
-    if (status) {
+    if (status == 200) {
         s << CRLF << protocol << " 200 " << "OK\r\n";
         s << "Content-Length: " << length << CRLF;
         s << "Content-Type: " << "text/html" << CRLF;
@@ -76,6 +80,17 @@ bool prepareResponse(string& response, const string responseBody, const size_t l
         return true;
     } else {
         // report 4XX error
+        if (status == 404) {
+            s << CRLF << protocol << " 404 " << "Not Found" << CRLF;
+        } else if (status == 401) {
+            s << CRLF << protocol << " 401 " << "Unauthorized" << CRLF;
+        } else if (status == 403) {
+            s << CRLF << protocol << " 403 " << "Forbidden" << CRLF;
+        }
+        s << "Content-length: " << length << CRLF;
+        s << "Content-Tpye: " << "text/html" << CRLF;
+        s << CRLF;
+        response = s.str();
         return false;
     }
 }
@@ -192,12 +207,12 @@ int main (int argc, char* argv[]) {
                 // find html file and load
                 size_t length;
                 string responseBody;
-                bool success = findFile(url, responseBody, length);
+                int status = findFile(url, responseBody, length);
 
                 // generate response buffer
                 string response;
                 if (prepareResponse(response, responseBody, length,
-                        protocol, success)) {
+                        protocol, status)) {
                     cout << "\nGenerate HTTP response" << endl;
                 } else {
                     cerr << "\nCannot generate HTTP response" << endl;

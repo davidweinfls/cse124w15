@@ -163,7 +163,7 @@ int main (int argc, char* argv[]) {
             cout << "Connected with socket " << csock << endl;
         }
 
-        //if (fork() == 0) {
+        if (fork() == 0) {
             char buf[BUFSIZ];
             ssize_t bytes_read;
             int count = 0;
@@ -237,6 +237,9 @@ int main (int argc, char* argv[]) {
             } while (bytes_read > 0);
 
             close(csock);
-        //}
+            close(sock);
+        }
+        close(csock);
     } // end of while
+    close(sock);
 }

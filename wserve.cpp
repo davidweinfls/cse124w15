@@ -80,27 +80,30 @@ bool prepareResponse(string& response, const string responseBody, const size_t l
     }
 }
 
-bool checkCRLF(const string buf, string& request, ssize_t length) {
+int checkCRLF(const string buf, string& request, ssize_t length) {
     //cout << "string passed in checkCRLF: " << buf << endl;
     
     int i = 0;
-    bool found = false;
-    while (buf[i] != '\n') {
+    int num_of_CRLF = 0;
+    for (; i < buf.size(); ++i) {
         if (buf[i] == '\n') {
             cout << "found a new line" << endl;
         } else if (buf[i] == '\r' && buf[i+1] == '\n') {
             cout << "CRLF found!!!" << endl;
-            found = true;
-            break;
+            ++num_of_CRLF;
+            if (num_of_CRLF == 2) {
+                break;
+            } else { // skip this current CRLF
+                ++i;
+            }
         }
-        ++i;
     }
-    if (found) {
+    if (num_of_CRLF == 2) {
         request = request + buf.substr(0, i+1);
     } else {
-        request = request + buf.substr(0, i);
+        request = request + buf;
     }
-    return found;
+    return num_of_CRLF;
 }
 
 int main (int argc, char* argv[]) {
@@ -156,8 +159,8 @@ int main (int argc, char* argv[]) {
                 string url, protocol;
                 bytes_read = recv(csock, &buf, BUFSIZ - 1, 0);
 
-                //cout << "Buf contains: " << buf << endl;
-                //cout << "bytes read: " << bytes_read << endl;
+                cout << "Buf contains: " << buf << endl;
+                cout << "bytes read: " << bytes_read << endl;
 
                 if (bytes_read < 0) {
                     cerr << "recv failed" << endl;
@@ -172,14 +175,14 @@ int main (int argc, char* argv[]) {
                 memset(buf, '\0', BUFSIZ);
 
                 // check CRLF and generate a request string
-                if (checkCRLF(temp, request, bytes_read)) {
+                if (count += checkCRLF(temp, request, bytes_read)) {
+                    cout << "request buff: " << request << endl;
                     // found a CRLF
-                    ++count;
                     if (count == 2) {
                         // parse received request
                         parseRequest(request, url, protocol);
                         count = 0;
-                        request = temp.substr(temp.find_first_of("\r\n"));
+                        // request = temp.substr(temp.find_first_of("\r\n"));
                     } else continue; // keep receiving the 2nd CRLF
                 } else {
                     // no CRLF found, keep receiving
@@ -211,10 +214,10 @@ int main (int argc, char* argv[]) {
                 if (bytes_sent < 0) {
                     perror("sent failed");
                     exit(1);
-                } else if (bytes_sent < bytes_read) {
-                    perror("couldn't send anything");
-                    exit(1);
-                }
+                } //else if (bytes_sent < bytes_read) {
+                    //perror("couldn't send anything");
+                    // should handle 400, 404 request
+                //}
 
             } while (bytes_read > 0);
 

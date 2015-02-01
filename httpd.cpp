@@ -240,8 +240,8 @@ bool prepareResponse(string& response, const string responseBody, const string t
         }
         size_t errorLength;
         string errorBody = handleErrorPage(status, errorLength);
-        s << "Content-length: " << errorLength << CRLF;
-        s << "Content-Tpye: " << "text/html" << CRLF;
+        s << "Content-Length: " << errorLength << CRLF;
+        s << "Content-Type: " << "text/html" << CRLF;
         s << CRLF;
         s << errorBody << CRLF;
         response = s.str();

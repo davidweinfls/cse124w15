@@ -113,6 +113,44 @@ int findFile(const string url, string& responseBody, size_t& length) {
     return status;
 }
 
+string handleErrorPage(int status, size_t& length) {
+    string errorBody, filename;
+    ifstream ifs;
+
+    switch(status) {
+        case 400: 
+            filename = "400.html";
+            break;
+        case 404: 
+            filename = "404.html";
+            break;
+        case 403:
+            filename = "403.html";
+            break;
+        default:
+            break;
+    }
+    ifs.open(filename.c_str(), ifstream::in);
+    if (ifs.is_open()) {
+        ifs.seekg(0, ifstream::end);
+        length = ifs.tellg();
+        ifs.seekg(0, ifstream::beg);
+
+        char* buf = new char[length];
+        memset(buf, '\0', length);
+        if (ifs.good()) {
+            ifs.read(buf, length);
+        } else {
+            cerr << "cannot read error page" << endl;
+        }
+        errorBody.append(buf, length);
+    } else { 
+        ifs.close();
+        cerr << "cannot open error page" << endl;
+    } 
+    return errorBody;
+}
+
 bool prepareResponse(string& response, const string responseBody, const string type, const size_t length, const string protocol, int status) {
     ostringstream s;
     if (status == 200) {
@@ -132,9 +170,12 @@ bool prepareResponse(string& response, const string responseBody, const string t
         } else if (status == 403) {
             s << CRLF << "HTTP/1.1" << " 403 " << "Forbidden" << CRLF;
         }
-        s << "Content-length: " << length << CRLF;
+        size_t errorLength;
+        string errorBody = handleErrorPage(status, errorLength);
+        s << "Content-length: " << errorLength << CRLF;
         s << "Content-Tpye: " << "text/html" << CRLF;
         s << CRLF;
+        s << errorBody << CRLF;
         response = s.str();
         return false;
     }
@@ -260,6 +301,7 @@ int main (int argc, char* argv[]) {
                 }
                 // generate response buffer
                 string response;
+                cout << "=======status: " << status << "=======" << endl;
                 if (prepareResponse(response, responseBody, type, length,
                         protocol, status)) {
                     cout << "\nGenerate HTTP response" << endl;

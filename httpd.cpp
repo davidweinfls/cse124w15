@@ -17,6 +17,7 @@ using namespace std;
 
 #define CRLF "\r\n"
 #define DEFAULT_CONTENT_TYPE "application/octet-stream";
+#define SOCKET_TIMEOUT_SEC 10
 
 string doc_root;
 
@@ -337,6 +338,13 @@ int main (int argc, char* argv[]) {
                 string type = DEFAULT_CONTENT_TYPE;
                 int status = 0;
                 size_t length;
+
+                // set the socket timeout
+                struct timeval tv;
+                tv.tv_sec = SOCKET_TIMEOUT_SEC;
+                tv.tv_usec = 0;
+                setsockopt(csock, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv,sizeof(struct timeval));
+
                 bytes_read = recv(csock, &buf, BUFSIZ - 1, 0);
 
                 cout << "Buf contains: " << buf << endl;

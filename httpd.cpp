@@ -27,6 +27,9 @@ map<string, string> contentTypeMap() {
     m["png"] = "image/png";
     m["jpg"] = "image/jpeg";
     m["jpeg"] = "image/jpeg";
+    m["gif"] = "image/gif";
+    m["css"] = "text/css";
+    m["js"] = "application/javascript";
     return m;
 }
 
@@ -352,6 +355,10 @@ int main (int argc, char* argv[]) {
 
                 if (bytes_read < 0) {
                     cerr << "recv failed" << endl;
+                    if (errno == EWOULDBLOCK) {
+                        cerr << "recv timeout expired" << endl;
+                    }
+
                     exit(1);
                 } else if (bytes_read == 0) {
                     cerr << "client disconnected" << endl;
@@ -411,6 +418,7 @@ int main (int argc, char* argv[]) {
 
                 // disconnect HTTP 1.0 clients
                 if (protocol.compare("HTTP/1.0") == 0) {
+                    cout << "disconnecting HTTP/1.0 client" << endl;
                     break;
                 }
             } while (bytes_read > 0);

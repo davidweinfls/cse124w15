@@ -7,8 +7,10 @@
 #include <string.h>
 #include <unistd.h>
 #include <fstream>
+#include <stdio.h>
 #include <sstream>
 #include <sys/stat.h>
+#import <vector>
 #include <map>
 
 using namespace std;
@@ -103,9 +105,52 @@ string getFilename(string url) {
     return filename;
 }
 
+vector<string> &split(const string &s, char delim, vector<string> &elems) {
+    stringstream ss(s);
+    string item;
+    while (getline(ss, item, delim)) {
+        elems.push_back(item);
+    }
+    return elems;
+}
+
+
+vector<string> split(const string &s, char delim) {
+    vector<string> elems;
+    split(s, delim, elems);
+    return elems;
+}
+
+bool isFileInDocRoot(string filename) {
+    string rel_filename = filename.substr(doc_root.length() + 1);
+    int dir_depth = 0;
+    vector<string> filename_splitted = split(rel_filename, '/');
+    for (vector<string>::const_iterator i = filename_splitted.begin(); i != filename_splitted.end(); ++i) {
+        string filename_part = string(*i);
+
+        if (filename_part.compare("..") == 0) {
+            --dir_depth;
+        } else if (filename_part.length() > 0) {
+            ++dir_depth;
+        }
+
+        if (dir_depth < 0) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 int findFile(const string filename, string& responseBody, size_t& length) {
     ifstream ifs, errfs;
     int status = 0;
+
+    if (isFileInDocRoot(filename) == false) {
+        status = 400;
+        cerr << "client attempted to access file outside of document root" << endl;
+        return status;
+    }
 
     // open file
     ifs.open(filename.c_str(), ifstream::in);

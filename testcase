@@ -1,0 +1,27 @@
+// 1. 400 Malform
+//  a. more than one space
+
+    GET  / HTTP/1.1
+    GET /  HTTP/1.1
+    GET  /  HTTP/1.1
+
+//  b. wrong method
+
+    Get / HTTP/1.1
+    Put / HTTP/1.1
+
+//  c. wrong protocol
+
+    GET / http/1.1
+    GET / dsfahjl
+
+//  d. wrong url
+
+    GET index.html HTTP/1.1
+    GET dfjadfl HTTP/1.1
+
+
+
+// 2. 404 Not found
+
+// 3. 403 Forbidden

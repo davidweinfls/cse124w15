@@ -13,21 +13,28 @@ using namespace std;
 
 #define CRLF "\r\n"
 
-void parseRequest(const string data, string& url, string& protocol) {
+int parseRequest(const string data, string& method, string& url, string& protocol) {
 
     cout << "Receiving request: " << data << endl;
     
     size_t prev = 0, cur = 0;
     cur = data.find_first_of(" ", prev);
+    // check malform
+    method = data.substr(prev, cur - prev);
     prev = cur + 1;  // skip the GET method
+    if (method != "GET") return 400;
+
     // get the url
     cur = data.find_first_of(" ", prev);
     url = data.substr(prev, cur - prev);
+    if (url[0] != '/') return 400;
     prev = cur + 1;
+    
     // get the protocol version
     cur = data.find_first_of(CRLF, prev);
     protocol = data.substr(prev, cur - prev);
-    prev = cur + 1;
+    if (protocol.substr(0, 5) != "HTTP/") return 400;
+    return 200;
 }
 
 int findFile(const string url, string& responseBody, size_t& length) {
@@ -39,6 +46,9 @@ int findFile(const string url, string& responseBody, size_t& length) {
         filename = "index.html";
     } else if (url[0] == '/') {
         filename = url.substr(1);
+    } else {
+        status = 400;
+        return status;
     }
 
     // open file
@@ -61,8 +71,7 @@ int findFile(const string url, string& responseBody, size_t& length) {
         ifs.close();
         cerr << "cannot open file or file is protected" << endl;
         status = 404;
-    } else { // 401 - Unauthorized
-        status = 401;
+    } else {
     } // 403 Forbidden
 
     return status;
@@ -81,11 +90,11 @@ bool prepareResponse(string& response, const string responseBody, const size_t l
     } else {
         // report 4XX error
         if (status == 404) {
-            s << CRLF << protocol << " 404 " << "Not Found" << CRLF;
-        } else if (status == 401) {
-            s << CRLF << protocol << " 401 " << "Unauthorized" << CRLF;
+            s << CRLF << "HTTP/1.1" << " 404 " << "Not Found" << CRLF;
+        } else if (status == 400) {
+            s << CRLF << "HTTP/1.1" << " 400 " << "Bad Request" << CRLF;
         } else if (status == 403) {
-            s << CRLF << protocol << " 403 " << "Forbidden" << CRLF;
+            s << CRLF << "HTTP/1.1" << " 403 " << "Forbidden" << CRLF;
         }
         s << "Content-length: " << length << CRLF;
         s << "Content-Tpye: " << "text/html" << CRLF;
@@ -114,7 +123,8 @@ int checkCRLF(const string buf, string& request, ssize_t length) {
         }
     }
     if (num_of_CRLF == 2) {
-        request = buf.substr(0, i+1);
+        size_t end_of_request = buf.find(CRLF);
+        request = buf.substr(0, end_of_request);
     } else {
         request = request + buf;
     }
@@ -171,7 +181,9 @@ int main (int argc, char* argv[]) {
 
             // communicate with client via new socket using send(), recv()
             do {
-                string url, protocol;
+                string method, url, protocol, responseBody;
+                int status = 0;
+                size_t length;
                 bytes_read = recv(csock, &buf, BUFSIZ - 1, 0);
 
                 cout << "Buf contains: " << buf << endl;
@@ -195,9 +207,8 @@ int main (int argc, char* argv[]) {
                     // found a CRLF
                     if (count == 2) {
                         // parse received request
-                        parseRequest(request, url, protocol);
+                        status = parseRequest(request, method, url, protocol);
                         count = 0;
-                        // request = temp.substr(temp.find_first_of("\r\n"));
                         request = "";
                     } else continue; // keep receiving the 2nd CRLF
                 } else {
@@ -206,10 +217,9 @@ int main (int argc, char* argv[]) {
                 }
 
                 // find html file and load
-                size_t length;
-                string responseBody;
-                int status = findFile(url, responseBody, length);
-
+                if (status != 400) {
+                    status = findFile(url, responseBody, length);
+                }
                 // generate response buffer
                 string response;
                 if (prepareResponse(response, responseBody, length,

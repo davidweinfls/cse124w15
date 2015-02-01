@@ -2,3 +2,4 @@
 wserve
 httpd
 *.dSYM
+.idea

@@ -114,7 +114,7 @@ int checkCRLF(const string buf, string& request, ssize_t length) {
         }
     }
     if (num_of_CRLF == 2) {
-        request = request + buf.substr(0, i+1);
+        request = buf.substr(0, i+1);
     } else {
         request = request + buf;
     }
@@ -163,7 +163,7 @@ int main (int argc, char* argv[]) {
             cout << "Connected with socket " << csock << endl;
         }
 
-        //if (fork() == 0) {
+        if (fork() == 0) {
             char buf[BUFSIZ];
             ssize_t bytes_read;
             int count = 0;
@@ -191,13 +191,14 @@ int main (int argc, char* argv[]) {
 
                 // check CRLF and generate a request string
                 if (count += checkCRLF(temp, request, bytes_read)) {
-                    cout << "request buff: " << request << endl;
+                    cout << "\n<<<<< request buff: " << request << "\n>>>>>>>\n" << endl;
                     // found a CRLF
                     if (count == 2) {
                         // parse received request
                         parseRequest(request, url, protocol);
                         count = 0;
                         // request = temp.substr(temp.find_first_of("\r\n"));
+                        request = "";
                     } else continue; // keep receiving the 2nd CRLF
                 } else {
                     // no CRLF found, keep receiving
@@ -237,6 +238,9 @@ int main (int argc, char* argv[]) {
             } while (bytes_read > 0);
 
             close(csock);
-        //}
+            close(sock);
+        }
+        close(csock);
     } // end of while
+    close(sock);
 }

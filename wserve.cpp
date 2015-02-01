@@ -8,10 +8,36 @@
 #include <unistd.h>
 #include <fstream>
 #include <sstream>
+#include <map>
 
 using namespace std;
 
 #define CRLF "\r\n"
+#define DEFAULT_CONTENT_TYPE "application/octet-stream";
+
+map<string, string> contentTypeMap() {
+    map<string, string> m;
+    m["html"] = "text/html";
+    m["png"] = "image/png";
+    m["jpg"] = "image/jpeg";
+    m["jpeg"] = "image/jpeg";
+    return m;
+}
+
+string getContentType(string filename) {
+    size_t extIndex = filename.find_last_of(".");
+    if (extIndex == string::npos || extIndex == (filename.length() - 1)) {
+        return DEFAULT_CONTENT_TYPE;
+    }
+
+    string ext = filename.substr(extIndex + 1);
+    string contentType = contentTypeMap()[ext];
+    if (contentType.length() == 0) {
+        return DEFAULT_CONTENT_TYPE;
+    }
+
+    return contentType;
+}
 
 int parseRequest(const string data, string& method, string& url, string& protocol) {
 
@@ -37,10 +63,8 @@ int parseRequest(const string data, string& method, string& url, string& protoco
     return 200;
 }
 
-int findFile(const string url, string& responseBody, size_t& length) {
-    ifstream ifs, errfs;
+string getFilename(string url) {
     string filename;
-    int status = 0;
 
     // get rid of leading '/'
     int i = 0;
@@ -54,6 +78,14 @@ int findFile(const string url, string& responseBody, size_t& length) {
     } else {
         filename = url.substr(i);
     }
+
+    return filename;
+}
+
+int findFile(const string url, string& responseBody, size_t& length) {
+    ifstream ifs, errfs;
+    string filename = getFilename(url);
+    int status = 0;
 
     // open file
     ifs.open(filename.c_str(), ifstream::in);
@@ -81,12 +113,12 @@ int findFile(const string url, string& responseBody, size_t& length) {
     return status;
 }
 
-bool prepareResponse(string& response, const string responseBody, const size_t length, const string protocol, int status) {
+bool prepareResponse(string& response, const string responseBody, const string type, const size_t length, const string protocol, int status) {
     ostringstream s;
     if (status == 200) {
         s << CRLF << protocol << " 200 " << "OK\r\n";
         s << "Content-Length: " << length << CRLF;
-        s << "Content-Type: " << "text/html" << CRLF;
+        s << "Content-Type: " << type << CRLF;
         s << CRLF;
         s << responseBody << CRLF;
         response = s.str();
@@ -186,6 +218,7 @@ int main (int argc, char* argv[]) {
             // communicate with client via new socket using send(), recv()
             do {
                 string method, url, protocol, responseBody;
+                string type = DEFAULT_CONTENT_TYPE;
                 int status = 0;
                 size_t length;
                 bytes_read = recv(csock, &buf, BUFSIZ - 1, 0);
@@ -223,10 +256,11 @@ int main (int argc, char* argv[]) {
                 // find html file and load
                 if (status != 400) {
                     status = findFile(url, responseBody, length);
+                    type = getContentType(getFilename(url));
                 }
                 // generate response buffer
                 string response;
-                if (prepareResponse(response, responseBody, length,
+                if (prepareResponse(response, responseBody, type, length,
                         protocol, status)) {
                     cout << "\nGenerate HTTP response" << endl;
                 } else {

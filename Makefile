@@ -1,7 +1,7 @@
-all: wserve
+all: httpd
 
-wserve: wserve.cpp
-	g++ -g wserve.cpp -o wserve
+httpd: httpd.cpp
+	g++ -g httpd.cpp -o httpd
 
 clean:
-	rm wserve
+	rm httpd

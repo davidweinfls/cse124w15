@@ -1,2 +1,5 @@
 *.out
 wserve
+httpd
+*.dSYM
+.idea

@@ -8,12 +8,15 @@
 #include <unistd.h>
 #include <fstream>
 #include <sstream>
+#include <sys/stat.h>
 #include <map>
 
 using namespace std;
 
 #define CRLF "\r\n"
 #define DEFAULT_CONTENT_TYPE "application/octet-stream";
+
+string doc_root;
 
 map<string, string> contentTypeMap() {
     map<string, string> m;
@@ -63,6 +66,16 @@ int parseRequest(const string data, string& method, string& url, string& protoco
     return 200;
 }
 
+bool isDirectory(string filename) {
+    struct stat st;
+    lstat(filename.c_str(), &st);
+    if (S_ISDIR(st.st_mode)) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
 string getFilename(string url) {
     string filename;
 
@@ -72,19 +85,26 @@ string getFilename(string url) {
         i++;
     }
 
-    // handle default '/'
-    if (i == url.size()) {
-        filename = "index.html";
-    } else {
-        filename = url.substr(i);
+    filename = url.substr(i);
+
+    // get rid of trailing '/'
+    while ((*filename.rbegin()) == '/') {
+        filename = filename.substr(0, filename.length() - 1);
+    }
+
+    // prepend document root
+    filename = doc_root + "/" + filename;
+
+    // if client is accessing a directory, append index.html
+    if (isDirectory(filename)) {
+        filename = filename + "/index.html";
     }
 
     return filename;
 }
 
-int findFile(const string url, string& responseBody, size_t& length) {
+int findFile(const string filename, string& responseBody, size_t& length) {
     ifstream ifs, errfs;
-    string filename = getFilename(url);
     int status = 0;
 
     // open file
@@ -108,7 +128,7 @@ int findFile(const string url, string& responseBody, size_t& length) {
         ifs.close();
         cerr << "cannot open file or file is protected" << endl;
         status = 404;
-    } 
+    }
 
     return status;
 }
@@ -130,6 +150,9 @@ string handleErrorPage(int status, size_t& length) {
         default:
             break;
     }
+
+    filename = doc_root + "/" + filename;
+
     ifs.open(filename.c_str(), ifstream::in);
     if (ifs.is_open()) {
         ifs.seekg(0, ifstream::end);
@@ -209,9 +232,16 @@ int checkCRLF(const string buf, string& request, ssize_t length) {
 }
 
 int main (int argc, char* argv[]) {
-    if (argc != 2) {
-        cerr << "No port specified." << endl << "Example: " << argv[0] << " [port]" << endl;
+    if (argc != 3) {
+        cerr << "Invalid number of arguments specified." << endl;
+        cerr << "Usage: " << argv[0] << " [port] [document root]" << endl;
         exit(1);
+    }
+
+    // get the document root; remove trailing slashes
+    doc_root = string(argv[2]);
+    while ((*doc_root.rbegin()) == '/') {
+        doc_root = doc_root.substr(0, doc_root.length() - 1);
     }
 
     int sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -296,7 +326,8 @@ int main (int argc, char* argv[]) {
 
                 // find html file and load
                 if (status != 400) {
-                    status = findFile(url, responseBody, length);
+                    string filename = getFilename(url);
+                    status = findFile(filename, responseBody, length);
                     type = getContentType(getFilename(url));
                 }
                 // generate response buffer

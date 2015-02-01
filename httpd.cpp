@@ -409,10 +409,15 @@ int main (int argc, char* argv[]) {
                     // should handle 400, 404 request
                 //}
 
+                // disconnect HTTP 1.0 clients
+                if (protocol.compare("HTTP/1.0") == 0) {
+                    break;
+                }
             } while (bytes_read > 0);
 
             close(csock);
             close(sock);
+            exit(0);
         }
         close(csock);
     } // end of while

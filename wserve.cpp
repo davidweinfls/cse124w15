@@ -61,8 +61,8 @@ int findFile(const string url, string& responseBody, size_t& length) {
         ifs.close();
         cerr << "cannot open file or file is protected" << endl;
         status = 404;
-    } else { // 401 - Unauthorized
-        status = 401;
+    } else { // 400 - Bad Request
+        status = 400;
     } // 403 Forbidden
 
     return status;
@@ -81,7 +81,7 @@ bool prepareResponse(string& response, const string responseBody, const size_t l
     } else {
         // report 4XX error
         if (status == 404) {
-            s << CRLF << protocol << " 404 " << "Not Found" << CRLF;
+            s << CRLF << "HTTP/1.1" << " 404 " << "Not Found" << CRLF;
         } else if (status == 401) {
             s << CRLF << protocol << " 401 " << "Unauthorized" << CRLF;
         } else if (status == 403) {
@@ -114,7 +114,8 @@ int checkCRLF(const string buf, string& request, ssize_t length) {
         }
     }
     if (num_of_CRLF == 2) {
-        request = buf.substr(0, i+1);
+        size_t end_of_request = buf.find(CRLF);
+        request = buf.substr(0, end_of_request);
     } else {
         request = request + buf;
     }

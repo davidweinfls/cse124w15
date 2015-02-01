@@ -25,3 +25,10 @@
 // 2. 404 Not found
 
 // 3. 403 Forbidden
+
+// 4. 200 ok
+
+    GET / HTTP/1.1
+    GET ///// HTTP/1.1
+    GET /index.html HTTP/1.1
+    GET /sub/sub.html HTTP/1.1

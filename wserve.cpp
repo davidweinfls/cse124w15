@@ -29,7 +29,7 @@ int parseRequest(const string data, string& method, string& url, string& protoco
     url = data.substr(prev, cur - prev);
     if (url[0] != '/') return 400;
     prev = cur + 1;
-    
+
     // get the protocol version
     cur = data.find_first_of(CRLF, prev);
     protocol = data.substr(prev, cur - prev);
@@ -42,18 +42,21 @@ int findFile(const string url, string& responseBody, size_t& length) {
     string filename;
     int status = 0;
 
-    if (url[0] == '/' && url.size() == 1) {
+    // get rid of leading '/'
+    int i = 0;
+    while (url[i] == '/') {
+        i++;
+    }
+
+    // handle default '/'
+    if (i == url.size()) {
         filename = "index.html";
-    } else if (url[0] == '/') {
-        filename = url.substr(1);
     } else {
-        status = 400;
-        return status;
+        filename = url.substr(i);
     }
 
     // open file
     ifs.open(filename.c_str(), ifstream::in);
-    // TODO: check if file exist, if permitted
     if (ifs.is_open()) {
         ifs.seekg(0, ifstream::end);
         length = ifs.tellg();
@@ -64,15 +67,16 @@ int findFile(const string url, string& responseBody, size_t& length) {
 
         if (ifs.good()) {
             ifs.read(buf, length);
+        } else {
+            status = 403; // Forbidden
         }
         responseBody.append(buf, length);
         status = 200;
-    } else if (!ifs.is_open()) { // 404 Not Found
+    } else { // 404 Not Found
         ifs.close();
         cerr << "cannot open file or file is protected" << endl;
         status = 404;
-    } else {
-    } // 403 Forbidden
+    } 
 
     return status;
 }

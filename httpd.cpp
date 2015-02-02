@@ -366,9 +366,9 @@ int main (int argc, char* argv[]) {
 
                 if (bytes_read < 0) {
                     cerr << "recv failed" << endl;
-                    if (errno == EWOULDBLOCK) {
-                        cerr << "recv timeout expired" << endl;
-                    }
+                    //if (errno == EWOULDBLOCK) {
+                      //  cerr << "recv timeout expired" << endl;
+                    //}
 
                     exit(1);
                 } else if (bytes_read == 0) {

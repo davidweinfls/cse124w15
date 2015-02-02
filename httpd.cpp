@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include <sstream>
 #include <sys/stat.h>
-#import <vector>
+#include <vector>
 #include <map>
 
 using namespace std;
@@ -147,7 +147,6 @@ bool isFileInDocRoot(string filename) {
 }
 
 int findFile(const string filename, string& responseBody, size_t& length) {
-    ifstream ifs, errfs;
     int status = 0;
 
     if (isFileInDocRoot(filename) == false) {
@@ -157,8 +156,22 @@ int findFile(const string filename, string& responseBody, size_t& length) {
     }
 
     // open file
-    ifs.open(filename.c_str(), ifstream::in);
-    if (ifs.is_open()) {
+    ifstream ifs(filename.c_str());
+    // check if file exists
+    if (ifs.good()) {
+        struct stat fileStat;
+        if (stat(filename.c_str(), &fileStat) < 0) {
+            cerr << "cannot get permission status of file" << endl;
+        }
+
+        // check read permission of other users
+        if (!(fileStat.st_mode & S_IROTH)) {
+            ifs.close();
+            cerr << "file is not world readable" << endl;
+            status = 403;
+            return status;
+        }
+
         ifs.seekg(0, ifstream::end);
         length = ifs.tellg();
         ifs.seekg(0, ifstream::beg);
@@ -166,11 +179,8 @@ int findFile(const string filename, string& responseBody, size_t& length) {
         char* buf = new char[length];
         memset(buf, '\0', length);
 
-        if (ifs.good()) {
-            ifs.read(buf, length);
-        } else {
-            status = 403; // Forbidden
-        }
+        ifs.read(buf, length);
+
         responseBody.append(buf, length);
         status = 200;
     } else { // 404 Not Found

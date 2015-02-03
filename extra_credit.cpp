@@ -166,7 +166,7 @@ bool checkAccessPermission(const string ip) {
                     }
                 }
             } else { // TODO: handle domain check
-
+                cout << "DOMAIN!!!! " << domain << endl;
             }
         }
     } else {

@@ -20,6 +20,7 @@
 using namespace std;
 
 #define CRLF "\r\n"
+#define CRLFCRLF "\r\n\r\n"
 #define DEFAULT_CONTENT_TYPE "application/octet-stream";
 #define SOCKET_TIMEOUT_SEC 20
 
@@ -75,9 +76,10 @@ int parseRequest(const string data, string& method, string& url, string& protoco
     if (protocol.substr(0, 5) != "HTTP/") return 400;
     // check version number format
     cur = data.find_first_of("/", prev);
-    string version = data.substr(prev, cur - prev);
+    string version = data.substr(cur, data.find_first_not_of("0123456789.", cur) - cur);
     if (!version.empty() && version.find_first_not_of("0123456789.") != string::npos) {
         cout << "protocol version number is malformed\nversion: " << version << endl;
+        cout << "version len: " << version.length() << endl;
         return 400;
     }
     return 200;
@@ -275,30 +277,38 @@ bool prepareResponse(string& response, const string responseBody, const string t
 }
 
 int checkCRLF(const string buf, string& request, ssize_t length) {
-    //cout << "string passed in checkCRLF: " << buf << endl;
+    cout << "string passed in checkCRLF: " << buf << endl;
     
-    int i = 0;
-    int num_of_CRLF = 0;
-    for (; i < buf.size(); ++i) {
-        if (buf[i] == '\n') {
-            cout << "found a new line" << endl;
-        } else if (buf[i] == '\r' && buf[i+1] == '\n') {
-            cout << "CRLF found!!!" << endl;
-            ++num_of_CRLF;
-            if (num_of_CRLF == 2) {
-                break;
-            } else { // skip this current CRLF
-                ++i;
-            }
-        }
-    }
-    if (num_of_CRLF == 2) {
-        size_t end_of_request = buf.find(CRLF);
-        request = buf.substr(0, end_of_request);
+    // int i = 0;
+    // int num_of_CRLF = 0;
+    // for (; i < buf.size() - 3; ++i) {
+    //     if (buf[i] == '\r' && buf[i+1] == '\n' && buf[i+2] == '\r' && buf[i+3] == '\n') {
+    //         cout << "CRLFCRLF found!!!" << endl;
+    //         num_of_CRLF = 2;
+    //         if (num_of_CRLF == 2) {
+    //             break;
+    //         } else { // skip this current CRLF
+    //             ++i;
+    //         }
+    //     }
+    // }
+
+    request = request + buf.substr(0, length);
+    size_t end_of_request = request.find(CRLFCRLF);
+    if (end_of_request == string::npos) {
+        return 0;
     } else {
-        request = request + buf;
+        request = request.substr(0, end_of_request);
+        return 2;
     }
-    return num_of_CRLF;
+
+    // if (num_of_CRLF == 2) {
+    //     size_t end_of_request = buf.find(CRLFCRLF);
+    //     request = buf.substr(0, end_of_request);
+    // } else {
+    //     request = request + buf;
+    // }
+    // return num_of_CRLF;
 }
 
 int main (int argc, char* argv[]) {
@@ -397,15 +407,15 @@ int main (int argc, char* argv[]) {
                     memset(buf, '\0', BUFSIZ);
 
                     // check CRLF and generate a request string
-                    if (count += checkCRLF(temp, request, bytes_read)) {
+                    if (checkCRLF(temp, request, bytes_read) == 2) {
                         cout << "\n<<<<< request buff: " << request << "\n>>>>>>>\n" << endl;
                         // found a CRLF
-                        if (count == 2) {
-                            // parse received request
-                            status = parseRequest(request, method, url, protocol);
-                            count = 0;
-                            request = "";
-                        } else continue; // keep receiving the 2nd CRLF
+
+                        // parse received request
+                        status = parseRequest(request, method, url, protocol);
+                        count = 0;
+                        request = "";
+
                     } else {
                         // no CRLF found, keep receiving
                         continue;
@@ -457,7 +467,7 @@ int main (int argc, char* argv[]) {
                 close(sock);
                 exit(0);
             } // end of fork()
-        } // end of if(checkAccessPermission)
+        } else { cout << "htaccess denies this client" << endl; } // end of if(checkAccessPermission)
         close(csock);
     } // end of while
     close(sock);

@@ -1,3 +1,4 @@
+allow from 127.0.0.1/32
 deny from 172.22.16.18/32
 allow from 172.22.16.0/24
 allow from 192.168.0.0/16

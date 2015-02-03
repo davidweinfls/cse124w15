@@ -17,7 +17,7 @@ using namespace std;
 
 #define CRLF "\r\n"
 #define DEFAULT_CONTENT_TYPE "application/octet-stream";
-#define SOCKET_TIMEOUT_SEC 10
+#define SOCKET_TIMEOUT_SEC 20
 
 string doc_root;
 
@@ -236,7 +236,7 @@ string handleErrorPage(int status, size_t& length) {
 bool prepareResponse(string& response, const string responseBody, const string type, const size_t length, const string protocol, int status) {
     ostringstream s;
     if (status == 200) {
-        s << CRLF << protocol << " 200 " << "OK\r\n";
+        s << CRLF << "HTPP/1.1" << " 200 " << "OK\r\n";
         s << "Content-Length: " << length << CRLF;
         s << "Content-Type: " << type << CRLF;
         s << CRLF;

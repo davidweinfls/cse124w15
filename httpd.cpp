@@ -73,6 +73,13 @@ int parseRequest(const string data, string& method, string& url, string& protoco
     cur = data.find_first_of(CRLF, prev);
     protocol = data.substr(prev, cur - prev);
     if (protocol.substr(0, 5) != "HTTP/") return 400;
+    // check version number format
+    cur = data.find_first_of("/", prev);
+    string version = data.substr(prev, cur - prev);
+    if (!version.empty() && version.find_first_not_of("0123456789.") != string::npos) {
+        cout << "protocol version number is malformed\nversion: " << version << endl;
+        return 400;
+    }
     return 200;
 }
 
@@ -411,7 +418,7 @@ int main (int argc, char* argv[]) {
                         type = getContentType(getFilename(url));
                     } else {
                         cout << "error 400; client error. disconnecting client" << endl;
-                        break;
+                        //break;
                     }
                     // generate response buffer
                     string response;

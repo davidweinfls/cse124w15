@@ -13,6 +13,7 @@
 #include <vector>
 #include <map>
 #include "extra_credit.cpp"
+#include <arpa/inet.h>
 
 using namespace std;
 
@@ -237,7 +238,7 @@ string handleErrorPage(int status, size_t& length) {
 bool prepareResponse(string& response, const string responseBody, const string type, const size_t length, const string protocol, int status) {
     ostringstream s;
     if (status == 200) {
-        s << CRLF << "HTPP/1.1" << " 200 " << "OK\r\n";
+        s << CRLF << "HTTP/1.1" << " 200 " << "OK\r\n";
         s << "Content-Length: " << length << CRLF;
         s << "Content-Type: " << type << CRLF;
         s << CRLF;
@@ -344,6 +345,7 @@ int main (int argc, char* argv[]) {
         // call accept() to get a new socket for each client connection
         int csock = accept(sock, (struct sockaddr*) &client_address, &ca_len);
         cout << "Connected to: " << client_address.sin_addr.s_addr << endl;
+        cout << "Connection from: " << inet_ntoa(client_address.sin_addr) << endl;
 
         if (csock < 0) {
             perror("accept failed");
@@ -412,6 +414,9 @@ int main (int argc, char* argv[]) {
                     string filename = getFilename(url);
                     status = findFile(filename, responseBody, length);
                     type = getContentType(getFilename(url));
+                } else {
+                    cout << "error 400; client error. disconnecting client" << endl;
+                    break;
                 }
                 // generate response buffer
                 string response;

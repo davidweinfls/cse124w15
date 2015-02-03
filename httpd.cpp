@@ -333,6 +333,7 @@ int main (int argc, char* argv[]) {
         // call accept() to get a new socket for each client connection
         int csock = accept(sock, (struct sockaddr*) &client_address, &ca_len);
         cout << "Connected to: " << client_address.sin_addr.s_addr << endl;
+        cout << "Connection from: " << inet_ntoa(client_address.sin_addr) << endl;
 
         if (csock < 0) {
             perror("accept failed");

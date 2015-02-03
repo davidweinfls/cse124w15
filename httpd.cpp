@@ -12,6 +12,7 @@
 #include <sys/stat.h>
 #include <vector>
 #include <map>
+#include "extra_credit.cpp"
 #include <arpa/inet.h>
 
 using namespace std;
@@ -289,6 +290,17 @@ int checkCRLF(const string buf, string& request, ssize_t length) {
         request = request + buf;
     }
     return num_of_CRLF;
+}
+
+bool checkHtAccess(vector<ht>& command) {
+    if (readHtAccess(command)) {
+        for (int i = 0; i < command.size(); ++i) {
+            maskIP(command[i].ip, command[i].mask);
+        }
+        return true;
+    } else {
+        return false;
+    }
 }
 
 int main (int argc, char* argv[]) {

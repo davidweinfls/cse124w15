@@ -1,0 +1,5 @@
+deny from 172.22.16.18/32
+allow from 172.22.16.0/24
+allow from 192.168.0.0/16
+allow from mymachine.ucsd.edu
+deny from 0.0.0.0/0

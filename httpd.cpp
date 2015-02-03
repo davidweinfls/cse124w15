@@ -14,6 +14,8 @@
 #include <map>
 #include "extra_credit.cpp"
 #include <arpa/inet.h>
+#include <bitset>
+#include <stdint.h>
 
 using namespace std;
 
@@ -71,6 +73,13 @@ int parseRequest(const string data, string& method, string& url, string& protoco
     cur = data.find_first_of(CRLF, prev);
     protocol = data.substr(prev, cur - prev);
     if (protocol.substr(0, 5) != "HTTP/") return 400;
+    // check version number format
+    cur = data.find_first_of("/", prev);
+    string version = data.substr(prev, cur - prev);
+    if (!version.empty() && version.find_first_not_of("0123456789.") != string::npos) {
+        cout << "protocol version number is malformed\nversion: " << version << endl;
+        return 400;
+    }
     return 200;
 }
 
@@ -292,17 +301,6 @@ int checkCRLF(const string buf, string& request, ssize_t length) {
     return num_of_CRLF;
 }
 
-bool checkHtAccess(vector<ht>& command) {
-    if (readHtAccess(command)) {
-        for (int i = 0; i < command.size(); ++i) {
-            maskIP(command[i].ip, command[i].mask);
-        }
-        return true;
-    } else {
-        return false;
-    }
-}
-
 int main (int argc, char* argv[]) {
     if (argc != 3) {
         cerr << "Invalid number of arguments specified." << endl;
@@ -339,7 +337,7 @@ int main (int argc, char* argv[]) {
     }
 
     while (1) {
-        struct sockaddr_in client_address = {0};
+        struct sockaddr_in client_address;
         socklen_t ca_len = 0;
 
         // call accept() to get a new socket for each client connection
@@ -354,107 +352,112 @@ int main (int argc, char* argv[]) {
             cout << "Connected with socket " << csock << endl;
         }
 
-        if (fork() == 0) {
-            char buf[BUFSIZ];
-            ssize_t bytes_read;
-            int count = 0;
-            string request; 
+        string client_ip (inet_ntoa(client_address.sin_addr));
 
-            // communicate with client via new socket using send(), recv()
-            do {
-                string method, url, protocol, responseBody;
-                string type = DEFAULT_CONTENT_TYPE;
-                int status = 0;
-                size_t length;
+        // check .htaccess for access permission
+        if (checkAccessPermission(client_ip)) { 
+            if (fork() == 0) {
+                char buf[BUFSIZ];
+                ssize_t bytes_read;
+                int count = 0;
+                string request; 
 
-                // set the socket timeout
-                struct timeval tv;
-                tv.tv_sec = SOCKET_TIMEOUT_SEC;
-                tv.tv_usec = 0;
-                setsockopt(csock, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv,sizeof(struct timeval));
+                // communicate with client via new socket using send(), recv()
+                do {
+                    string method, url, protocol, responseBody;
+                    string type = DEFAULT_CONTENT_TYPE;
+                    int status = 0;
+                    size_t length;
 
-                bytes_read = recv(csock, &buf, BUFSIZ - 1, 0);
+                    // set the socket timeout
+                    struct timeval tv;
+                    tv.tv_sec = SOCKET_TIMEOUT_SEC;
+                    tv.tv_usec = 0;
+                    setsockopt(csock, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv,sizeof(struct timeval));
 
-                cout << "Buf contains: " << buf << endl;
-                cout << "bytes read: " << bytes_read << endl;
+                    bytes_read = recv(csock, &buf, BUFSIZ - 1, 0);
 
-                if (bytes_read < 0) {
-                    cerr << "recv failed" << endl;
-                    //if (errno == EWOULDBLOCK) {
-                      //  cerr << "recv timeout expired" << endl;
+                    cout << "Buf contains: " << buf << endl;
+                    cout << "bytes read: " << bytes_read << endl;
+
+                    if (bytes_read < 0) {
+                        cerr << "recv failed" << endl;
+                        //if (errno == EWOULDBLOCK) {
+                          //  cerr << "recv timeout expired" << endl;
+                        //}
+
+                        exit(1);
+                    } else if (bytes_read == 0) {
+                        cerr << "client disconnected" << endl;
+                        exit(1);
+                    }
+
+                    // copy buffer content to temp string, clear buffer
+                    string temp(buf);
+                    memset(buf, '\0', BUFSIZ);
+
+                    // check CRLF and generate a request string
+                    if (count += checkCRLF(temp, request, bytes_read)) {
+                        cout << "\n<<<<< request buff: " << request << "\n>>>>>>>\n" << endl;
+                        // found a CRLF
+                        if (count == 2) {
+                            // parse received request
+                            status = parseRequest(request, method, url, protocol);
+                            count = 0;
+                            request = "";
+                        } else continue; // keep receiving the 2nd CRLF
+                    } else {
+                        // no CRLF found, keep receiving
+                        continue;
+                    }
+
+                    // find html file and load
+                    if (status != 400) {
+                        string filename = getFilename(url);
+                        status = findFile(filename, responseBody, length);
+                        type = getContentType(getFilename(url));
+                    } else {
+                        cout << "error 400; client error. disconnecting client" << endl;
+                        //break;
+                    }
+                    // generate response buffer
+                    string response;
+                    cout << "=======status: " << status << "=======" << endl;
+                    if (prepareResponse(response, responseBody, type, length,
+                            protocol, status)) {
+                        cout << "\nGenerate HTTP response" << endl;
+                    } else {
+                        cerr << "\nCannot generate HTTP response" << endl;
+                    }
+
+                    // prepare response, convert to c_str
+                    char *buf = new char[response.size()];
+                    memset(buf, '\0', response.size());
+                    memcpy(buf, response.c_str(), response.size());
+
+                    // send response
+                    ssize_t bytes_sent = send(csock, buf, response.size(), 0);
+
+                    if (bytes_sent < 0) {
+                        perror("sent failed");
+                        exit(1);
+                    } //else if (bytes_sent < bytes_read) {
+                        //perror("couldn't send anything");
+                        // should handle 400, 404 request
                     //}
 
-                    exit(1);
-                } else if (bytes_read == 0) {
-                    cerr << "client disconnected" << endl;
-                    exit(1);
-                }
+                    // disconnect HTTP 1.0 clients
+                    if (protocol.compare("HTTP/1.0") == 0) {
+                        cout << "disconnecting HTTP/1.0 client" << endl;
+                        break;
+                    }
+                } while (bytes_read > 0);
 
-                // copy buffer content to temp string, clear buffer
-                string temp(buf);
-                memset(buf, '\0', BUFSIZ);
-
-                // check CRLF and generate a request string
-                if (count += checkCRLF(temp, request, bytes_read)) {
-                    cout << "\n<<<<< request buff: " << request << "\n>>>>>>>\n" << endl;
-                    // found a CRLF
-                    if (count == 2) {
-                        // parse received request
-                        status = parseRequest(request, method, url, protocol);
-                        count = 0;
-                        request = "";
-                    } else continue; // keep receiving the 2nd CRLF
-                } else {
-                    // no CRLF found, keep receiving
-                    continue;
-                }
-
-                // find html file and load
-                if (status != 400) {
-                    string filename = getFilename(url);
-                    status = findFile(filename, responseBody, length);
-                    type = getContentType(getFilename(url));
-                } else {
-                    cout << "error 400; client error. disconnecting client" << endl;
-                    break;
-                }
-                // generate response buffer
-                string response;
-                cout << "=======status: " << status << "=======" << endl;
-                if (prepareResponse(response, responseBody, type, length,
-                        protocol, status)) {
-                    cout << "\nGenerate HTTP response" << endl;
-                } else {
-                    cerr << "\nCannot generate HTTP response" << endl;
-                }
-
-                // prepare response, convert to c_str
-                char *buf = new char[response.size()];
-                memset(buf, '\0', response.size());
-                memcpy(buf, response.c_str(), response.size());
-
-                // send response
-                ssize_t bytes_sent = send(csock, buf, response.size(), 0);
-
-                if (bytes_sent < 0) {
-                    perror("sent failed");
-                    exit(1);
-                } //else if (bytes_sent < bytes_read) {
-                    //perror("couldn't send anything");
-                    // should handle 400, 404 request
-                //}
-
-                // disconnect HTTP 1.0 clients
-                if (protocol.compare("HTTP/1.0") == 0) {
-                    cout << "disconnecting HTTP/1.0 client" << endl;
-                    break;
-                }
-            } while (bytes_read > 0);
-
-            close(csock);
-            close(sock);
-            exit(0);
-        }
+                close(csock);
+                close(sock);
+                exit(0);
+            } // end of fork()
+        } // end of if(checkAccessPermission)
         close(csock);
     } // end of while
     close(sock);

@@ -365,7 +365,7 @@ int main (int argc, char* argv[]) {
         string client_ip (inet_ntoa(client_address.sin_addr));
 
         // check .htaccess for access permission
-        if (checkAccessPermission(client_ip)) { 
+        if (true || checkAccessPermission(client_ip)) { 
             if (fork() == 0) {
                 char buf[BUFSIZ];
                 ssize_t bytes_read;

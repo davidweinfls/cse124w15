@@ -1,0 +1,5 @@
+#!/bin/bash
+# Compiler Program
+
+javac -cp "/usr/lib/hadoop/client/*" *.java
+jar cvf example.jar *.class

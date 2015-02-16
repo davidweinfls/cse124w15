@@ -3,6 +3,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.FloatWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.mapred.*;
+import org.apache.hadoop.io.Text;
 
 /**
  * Driver class for PolyHadoop project. Runs the Hadoop instance, setting
@@ -22,9 +23,9 @@ public class HadoopDriver {
 
 	public static void main(String[] args) {
 		/* Require args to contain the paths */
-		if(args.length != 1 && args.length != 2) {
+		if(args.length != 1 && args.length != 2 && args.length != 3) {
 			System.err.println("Error! Usage: \n" +
-					"HadoopDriver <input dir> <output dir>\n" +
+					"HadoopDriver <input dir> <output dir> <part number>\n" +
 					"HadoopDriver <job.xml>");
 			System.exit(1);
 		}
@@ -32,29 +33,48 @@ public class HadoopDriver {
 		JobClient client = new JobClient();
 		JobConf conf = null;
 		
-		if(args.length == 2) {
+		if(args.length == 3) {
 			conf = new JobConf(HadoopDriver.class);
-			
-			/* UserRatingMapper outputs (IntWritable, IntArrayWritable(Writable[2])) */
-			conf.setMapOutputKeyClass(IntWritable.class);
-			conf.setMapOutputValueClass(IntArrayWritable.class);
-			
-			/* AverageValueReducer outputs (IntWritable, FloatWritable) */
-			conf.setOutputKeyClass(IntWritable.class);
-			conf.setOutputValueClass(FloatWritable.class);
+            int part = Integer.parseInt(args[2]);
+
+            switch (part) {
+
+                case 0: 
+                /* UserRatingMapper outputs (IntWritable, IntArrayWritable(Writable[2])) */
+                conf.setMapOutputKeyClass(IntWritable.class);
+                conf.setMapOutputValueClass(IntArrayWritable.class);
+
+                /* Set to use Mapper and Reducer classes */
+                conf.setMapperClass(UserRatingMapper.class);
+                conf.setCombinerClass(UserRatingMapper.class);
+                conf.setReducerClass(AverageValueReducer.class);
+
+                /* AverageValueReducer outputs (IntWritable, FloatWritable) */
+                conf.setOutputKeyClass(IntWritable.class);
+                conf.setOutputValueClass(FloatWritable.class);
+                break;
+
+                case 1:
+                // DateRatingMapper outputs (Text, IntWritable)
+                conf.setMapOutputKeyClass(Text.class);
+                conf.setMapOutputValueClass(IntWritable.class);
+
+                conf.setMapperClass(DateRatingMapper.class);
+                conf.setCombinerClass(DateRatingMapper.class);
+                conf.setReducerClass(RatingsPerDateReducer.class);
+
+                conf.setOutputKeyClass(Text.class);
+                conf.setOutputValueClass(IntWritable.class);
+                break;
+
+            }
 	
 			/* Pull input and output Paths from the args */
 			conf.setInputFormat(TextInputFormat.class);
 			conf.setOutputFormat(TextOutputFormat.class);
-			
 			FileInputFormat.setInputPaths(conf, new Path(args[0]));
 			FileOutputFormat.setOutputPath(conf, new Path(args[1]));
 	
-			/* Set to use Mapper and Reducer classes */
-			conf.setMapperClass(UserRatingMapper.class);
-			conf.setCombinerClass(UserRatingMapper.class);
-			conf.setReducerClass(AverageValueReducer.class);
-			
 			conf.set("mapred.child.java.opts", "-Xmx2048m");
 		} else {
 			conf = new JobConf(args[0]);

@@ -1,0 +1,5 @@
+#!/bin/bash
+# Clear Hadoop FileSystem
+
+hadoop fs -rm -r input
+hadoop fs -rm -r output

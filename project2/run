@@ -1,0 +1,5 @@
+#!/bin/bash
+# Run MapReduce
+
+hadoop jar example.jar HadoopDriver input output
+hadoop fs -copyToLocal output output

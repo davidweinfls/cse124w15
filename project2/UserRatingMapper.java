@@ -79,7 +79,6 @@ Reducer<WritableComparable,Writable,WritableComparable,Writable> {
 			 * my regex is wrong.
 			 */
 		}
-		
 	}
 
 	/**

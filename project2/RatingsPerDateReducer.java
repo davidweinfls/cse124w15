@@ -22,7 +22,7 @@ implements Reducer<WritableComparable,Writable,WritableComparable,Writable>
 		
 		while(values.hasNext()) {
 			ratingInput = (IntWritable)values.next();;
-            total_rating = ratingInput.get();
+            total_rating += ratingInput.get();
 		}
 		output.collect(key, new IntWritable(total_rating));
 	}

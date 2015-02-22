@@ -67,6 +67,17 @@ public class HadoopDriver {
                 conf.setOutputValueClass(IntWritable.class);
                 break;
 
+                case 2:
+                conf.setMapOutputKeyClass(Text.class);
+                conf.setMapOutputValueClass(IntWritable.class);
+
+                conf.setMapperClass(part2Mapper.class);
+                conf.setCombinerClass(part2Mapper.class);
+                conf.setReducerClass(part2Reducer.class);
+
+                conf.setOutputKeyClass(Text.class);
+                conf.setOutputValueClass(IntWritable.class);
+                break;
             }
 	
 			/* Pull input and output Paths from the args */

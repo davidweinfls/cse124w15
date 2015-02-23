@@ -1,0 +1,10 @@
+According to the given movie data set, there are neither movies with no 1-star
+reviews nor moviews with no 5-star reviews. 
+
+However, there are 5 movies with
+only one 5-star review. They are movie 12053, 12116, 13917, 14398 and 2969. There are 3 movies with two 5-star reviews. They are movie 5792, 7558, and
+9775. These movies are considered as movies no one really loved.  
+
+On the other hand, there are 2 movies with two 1-star reviews: 1422 and 6539. These two movies are considered as movies no one really hated. 
+
+However, there can be another explaination for this scenario that these movies are not polular movies which receive less reviews. 

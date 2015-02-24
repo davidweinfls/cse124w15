@@ -36,6 +36,9 @@ public class HadoopDriver {
 		if(args.length == 3) {
 			conf = new JobConf(HadoopDriver.class);
             int part = Integer.parseInt(args[2]);
+            conf.setInputFormat(TextInputFormat.class);
+            conf.setOutputFormat(TextOutputFormat.class);
+            FileOutputFormat.setOutputPath(conf, new Path(args[1]));
 
             switch (part) {
 
@@ -52,7 +55,9 @@ public class HadoopDriver {
                 /* AverageValueReducer outputs (IntWritable, FloatWritable) */
                 conf.setOutputKeyClass(IntWritable.class);
                 conf.setOutputValueClass(FloatWritable.class);
-                break;
+                FileInputFormat.setInputPaths(conf, new Path(args[0]));
+
+                    break;
 
                 case 1:
                 // DateRatingMapper outputs (Text, IntWritable)
@@ -65,7 +70,9 @@ public class HadoopDriver {
 
                 conf.setOutputKeyClass(Text.class);
                 conf.setOutputValueClass(IntWritable.class);
-                break;
+                FileInputFormat.setInputPaths(conf, new Path(args[0]));
+
+                    break;
 
                 case 2:
                 conf.setMapOutputKeyClass(Text.class);
@@ -77,7 +84,46 @@ public class HadoopDriver {
 
                 conf.setOutputKeyClass(Text.class);
                 conf.setOutputValueClass(IntWritable.class);
-                break;
+                FileInputFormat.setInputPaths(conf, new Path(args[0]));
+
+                    break;
+
+                case 3:
+                JobConf prejobConf = new JobConf(HadoopDriver.class);
+                prejobConf.setMapOutputKeyClass(IntWritable.class);
+                prejobConf.setMapOutputValueClass(IntWritable.class);
+
+                prejobConf.setMapperClass(RatingsPerUserMapper.class);
+                prejobConf.setCombinerClass(RatingsPerUserMapper.class);
+                prejobConf.setReducerClass(RatingsPerUserReducer.class);
+
+                prejobConf.setOutputKeyClass(IntWritable.class);
+                prejobConf.setOutputValueClass(IntWritable.class);
+
+                prejobConf.setInputFormat(TextInputFormat.class);
+                prejobConf.setOutputFormat(TextOutputFormat.class);
+                FileInputFormat.setInputPaths(prejobConf, new Path(args[0]));
+                FileOutputFormat.setOutputPath(prejobConf, new Path("part3_user_to_rank_map"));
+
+                client.setConf(prejobConf);
+                try {
+                    JobClient.runJob(prejobConf);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
+                conf.setMapOutputKeyClass(IntWritable.class);
+                conf.setMapOutputValueClass(IntWritable.class);
+
+                conf.setMapperClass(UsersPerRatingCountMapper.class);
+                conf.setCombinerClass(UsersPerRatingCountMapper.class);
+                conf.setReducerClass(UsersPerRatingCountReducer.class);
+
+                conf.setOutputKeyClass(IntWritable.class);
+                conf.setOutputValueClass(IntWritable.class);
+                FileInputFormat.setInputPaths(conf, new Path("part3_user_to_rank_map"));
+
+                    break;
 
                 case 4:
                 conf.setMapOutputKeyClass(Text.class);
@@ -92,11 +138,7 @@ public class HadoopDriver {
                 break;
             }
 	
-			/* Pull input and output Paths from the args */
-			conf.setInputFormat(TextInputFormat.class);
-			conf.setOutputFormat(TextOutputFormat.class);
-			FileInputFormat.setInputPaths(conf, new Path(args[0]));
-			FileOutputFormat.setOutputPath(conf, new Path(args[1]));
+
 	
 			conf.set("mapred.child.java.opts", "-Xmx2048m");
 		} else {

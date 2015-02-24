@@ -135,7 +135,9 @@ public class HadoopDriver {
 
                 conf.setOutputKeyClass(Text.class);
                 conf.setOutputValueClass(IntWritable.class);
-                break;
+                FileInputFormat.setInputPaths(conf, new Path(args[0]));
+
+                    break;
             }
 	
 

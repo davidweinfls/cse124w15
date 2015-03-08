@@ -3,3 +3,6 @@ wserve
 httpd
 *.dSYM
 .idea
+*.class
+*.iml
+*.jar

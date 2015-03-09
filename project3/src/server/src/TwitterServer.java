@@ -16,7 +16,7 @@ public class TwitterServer {
         Map<String, List<String>> user_subs = 
             new HashMap<String, List<String>>();
 
-        user_subs.put("@david", new ArrayList());
+        user_subs.put("@david", new ArrayList<String>());
 
         return user_subs;
     }

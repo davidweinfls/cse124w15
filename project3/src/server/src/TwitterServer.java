@@ -5,8 +5,21 @@ import org.apache.thrift.transport.TServerTransport;
 import org.apache.thrift.server.TServer;
 import org.apache.thrift.server.TServer.Args;
 import org.apache.thrift.server.TThreadPoolServer;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 public class TwitterServer {
+
+    protected static Map<String, List<String>> sampleUsers() {
+        Map<String, List<String>> user_subs = 
+            new HashMap<String, List<String>>();
+
+        user_subs.put("@david", new ArrayList());
+
+        return user_subs;
+    }
 
  public static void StartsimpleServer(Twitter.Processor<TwitterHandler> processor) {
   try {
@@ -26,7 +39,7 @@ public class TwitterServer {
  }
  
  public static void main(String[] args) {
-    TwitterHandler handler = new TwitterHandler();
+    TwitterHandler handler = new TwitterHandler(sampleUsers());
     StartsimpleServer(new Twitter.Processor<TwitterHandler>(handler));
  }
 

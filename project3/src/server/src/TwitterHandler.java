@@ -30,11 +30,13 @@ public class TwitterHandler implements Twitter.Iface {
     public void createUser(String handle) throws AlreadyExistsException
     {
         // check if user already exists
-        if (!user_subs.containsKey(handle) || !user_tweets.containsKey(handle)) {
+        if (user_subs.containsKey(handle) || user_tweets.containsKey(handle)) {
+            System.err.println("create user error");
             throw new AlreadyExistsException();
         } else {
             user_subs.put(handle, new ArrayList<String>());
             user_tweets.put(handle, new ArrayList<Long>());
+            System.out.println("created user: " + handle);
         }
     }
 

@@ -39,7 +39,7 @@ public class TwitterServer {
  }
  
  public static void main(String[] args) {
-    TwitterHandler handler = new TwitterHandler(sampleUsers());
+    TwitterHandler handler = new TwitterHandler();
     StartsimpleServer(new Twitter.Processor<TwitterHandler>(handler));
  }
 

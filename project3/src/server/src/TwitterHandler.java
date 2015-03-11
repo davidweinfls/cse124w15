@@ -81,6 +81,7 @@ public class TwitterHandler implements Twitter.Iface {
                     System.out.println("nop - " + handle + " unsubscribe " + theirhandle);
                 } else {
                     user_subs.get(handle).remove(theirhandle);
+                    System.out.println(handle + " unsubscribed " + theirhandle);
                 }
             } else {
                 System.err.println("unsubsribe err - cannot unsubscribe a non-exist user");
@@ -139,7 +140,6 @@ public class TwitterHandler implements Twitter.Iface {
     public void star(String handle, long tweetId) throws
         NoSuchUserException, NoSuchTweetException
     {
-            System.out.println("here, id: " + tweetId);
         // check if valid user
         if (user_subs.containsKey(handle)) {
             // check if valid tweet
@@ -156,7 +156,7 @@ public class TwitterHandler implements Twitter.Iface {
                     user_star_tweets.get(handle).add(tweetId);
 
                     System.out.println(handle + " stared tweet " + "id : " + tweetId);
-                    System.out.println("tweet id: " + tweetId + " numOfStar: "
+                    System.out.println("\ttweet id: " + tweetId + " numOfStar: "
                             + tweets.get(tweetId).getNumStars());
                 }
 

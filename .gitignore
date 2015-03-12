@@ -6,3 +6,7 @@ httpd
 *.class
 *.iml
 *.jar
+
+*.pyc
+
+project3/src/client/gen-py/cse124/__init__.pyc

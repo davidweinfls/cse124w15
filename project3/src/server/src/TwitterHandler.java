@@ -126,16 +126,62 @@ public class TwitterHandler implements Twitter.Iface {
     public List<Tweet> readTweetsByUser(String handle, int howmany)
         throws NoSuchUserException
     {
-        return null;
+        // check if valid user
+        if (user_subs.containsKey(handle)) {
+            List<Long> thisUsersTweetIds = user_tweets.get(handle);
+            List<Tweet> thisUsersTweets = new ArrayList<Tweet>();
+            for (Long tweetId : thisUsersTweetIds) {
+                thisUsersTweets.add(tweets.get(tweetId));
+            }
+
+            int tweetsToRead = (thisUsersTweets.size() < howmany) ? thisUsersTweets.size() : howmany;
+
+            int addIndex = thisUsersTweets.size() - 1;
+            List<Tweet> returnedTweets = new ArrayList<Tweet>();
+            while (tweetsToRead > returnedTweets.size()) {
+                returnedTweets.add(thisUsersTweets.get(addIndex));
+                --addIndex;
+            }
+
+            // TODO: sort tweets by posted time in case they're somehow out of order
+
+            return returnedTweets;
+        } else {
+            System.err.println(handle + " does not exist");
+            throw new NoSuchUserException();
+        }
     }
 
     @Override
     public List<Tweet> readTweetsBySubscription(String handle, int howmany)
         throws NoSuchUserException
     {
-        return null;
-    }
+        // check if valid user
+        if (user_subs.containsKey(handle)) {
+            // ineffecient but works
+            List<String> subs = user_subs.get(handle);
+            List<Tweet> allTweets = new ArrayList<Tweet>();
+            for (String sub : subs) {
+                allTweets.addAll(readTweetsByUser(sub, howmany));
+            }
 
+            // TODO: sort tweets by posted time
+
+            //only take the top 'howmany' number of tweets
+            int tweetsToRead = (allTweets.size() < howmany) ? allTweets.size() : howmany;
+            int addIndex = allTweets.size() - 1;
+            List<Tweet> returnedTweets = new ArrayList<Tweet>();
+            while (tweetsToRead > returnedTweets.size()) {
+                returnedTweets.add(allTweets.get(addIndex));
+                --addIndex;
+            }
+
+            return returnedTweets;
+        } else {
+            System.err.println(handle + " does not exist");
+            throw new NoSuchUserException();
+        }
+    }
     @Override
     public void star(String handle, long tweetId) throws
         NoSuchUserException, NoSuchTweetException

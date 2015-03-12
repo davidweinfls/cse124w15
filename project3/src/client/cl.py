@@ -60,6 +60,9 @@ try:
   client.post("@user1", "first tweet")
   print '@user1 posted first tweet'
 
+  client.post("@user1", "second tweet")
+  print '@user1 posted second tweet'
+
   client.star("@user2", 1)
   print '@user2 star tweet 1'
 
@@ -68,6 +71,14 @@ try:
 
   client.star("@user2", 1)
   print '@user2 cannot star tweet 1 again'
+
+  tweets = client.readTweetsByUser("@user1", -1)
+  print "getting -1 of @user1's tweets; should be empty list"
+  print tweets
+
+  tweets = client.readTweetsByUser("@user1", 10)
+  print "@user1's tweets:"
+  print tweets
 
   # Close!
   transport.close()

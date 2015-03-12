@@ -42,12 +42,12 @@ public class TwitterHandler implements Twitter.Iface {
     }
 
     @Override
-    public void ping() {
+    public synchronized void ping() {
         System.out.println("Server receives ping from client.");
     }
 
     @Override
-    public void createUser(String handle) throws AlreadyExistsException
+    public synchronized void createUser(String handle) throws AlreadyExistsException
     {
         // check if user already exists
         if (user_subs.containsKey(handle)) {
@@ -62,7 +62,7 @@ public class TwitterHandler implements Twitter.Iface {
     }
 
     @Override
-    public void subscribe(String handle, String theirhandle)
+    public synchronized void subscribe(String handle, String theirhandle)
         throws NoSuchUserException
     {
         if (user_subs.containsKey(handle)) {
@@ -84,7 +84,7 @@ public class TwitterHandler implements Twitter.Iface {
     }
 
     @Override
-    public void unsubscribe(String handle, String theirhandle)
+    public synchronized void unsubscribe(String handle, String theirhandle)
         throws NoSuchUserException
     {
         if (user_subs.containsKey(handle)) {
@@ -107,14 +107,14 @@ public class TwitterHandler implements Twitter.Iface {
         }
     }
 
-    public long getTimeInSeconds() {
+    public synchronized long getTimeInSeconds() {
         long ms = System.currentTimeMillis();
         long s = TimeUnit.MILLISECONDS.toSeconds(ms);
         return s;
     }
 
     @Override
-    public void post(String handle, String tweetString)
+    public synchronized void post(String handle, String tweetString)
         throws NoSuchUserException, TweetTooLongException
     {
         // check if valid user
@@ -137,7 +137,7 @@ public class TwitterHandler implements Twitter.Iface {
     }
 
     @Override
-    public List<Tweet> readTweetsByUser(String handle, int howmany)
+    public synchronized List<Tweet> readTweetsByUser(String handle, int howmany)
         throws NoSuchUserException
     {
         // check if valid user
@@ -167,7 +167,7 @@ public class TwitterHandler implements Twitter.Iface {
     }
 
     @Override
-    public List<Tweet> readTweetsBySubscription(String handle, int howmany)
+    public synchronized List<Tweet> readTweetsBySubscription(String handle, int howmany)
         throws NoSuchUserException
     {
         // check if valid user
@@ -197,7 +197,7 @@ public class TwitterHandler implements Twitter.Iface {
         }
     }
     @Override
-    public void star(String handle, long tweetId) throws
+    public synchronized void star(String handle, long tweetId) throws
         NoSuchUserException, NoSuchTweetException
     {
         // check if valid user

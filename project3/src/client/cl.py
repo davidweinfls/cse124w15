@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import sys
+import time
 
 sys.path.append('gen-py')
 
@@ -36,6 +37,9 @@ try:
   client.createUser("@user2")
   print '@user2 created'
 
+  client.createUser("@user3")
+  print '@user3 created'
+
   client.createUser("@david")
   print '@david created'
 
@@ -59,9 +63,19 @@ try:
 
   client.post("@user1", "first tweet")
   print '@user1 posted first tweet'
+  time.sleep(2)
 
-  client.post("@user1", "second tweet")
-  print '@user1 posted second tweet'
+  client.post("@user3", "second tweet")
+  print '@user3 posted second tweet'
+  time.sleep(2)
+
+  client.post("@user1", "third tweet")
+  print '@user1 posted third tweet'
+  time.sleep(2)
+
+  client.post("@user3", "fourth tweet")
+  print '@user3 posted fourth tweet'
+  time.sleep(2)
 
   client.star("@user2", 1)
   print '@user2 star tweet 1'
@@ -78,6 +92,36 @@ try:
 
   tweets = client.readTweetsByUser("@user1", 10)
   print "@user1's tweets:"
+  print tweets
+
+  client.subscribe("@user2", "@user1")
+  print '@user2 subscribed to @user1'
+
+  client.subscribe('@user2', '@user3')
+  print '@user2 subscribed to @user3'
+
+  tweets = client.readTweetsBySubscription('@user2', 1)
+  print "@user2's subscribed tweets (1)"
+  print tweets
+
+  tweets = client.readTweetsBySubscription('@user2', 2)
+  print "@user2's subscribed tweets (2)"
+  print tweets
+
+  tweets = client.readTweetsBySubscription('@user2', 3)
+  print "@user2's subscribed tweets (3)"
+  print tweets
+
+  tweets = client.readTweetsBySubscription('@user2', 4)
+  print "@user2's subscribed tweets (4)"
+  print tweets
+
+  tweets = client.readTweetsBySubscription('@user2', 5)
+  print "@user2's subscribed tweets (5)"
+  print tweets
+
+  tweets = client.readTweetsBySubscription('@user2', -1)
+  print "@user2's subscribed tweets (-1)"
   print tweets
 
   # Close!

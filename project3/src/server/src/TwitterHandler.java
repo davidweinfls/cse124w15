@@ -7,6 +7,7 @@ import edu.ucsd.cse124.NoSuchUserException;
 import edu.ucsd.cse124.TweetTooLongException;
 import edu.ucsd.cse124.NoSuchTweetException;
 
+import java.util.*;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
@@ -19,6 +20,19 @@ public class TwitterHandler implements Twitter.Iface {
     protected long id = 0;
     protected Map<Long, Tweet> tweets;
     protected Map<String, List<Long>> user_star_tweets;
+
+    public static Comparator<Tweet> TweetComparator = new Comparator<Tweet>() {
+        public int compare(Tweet tweet1, Tweet tweet2) {
+ 
+ 
+          //ascending order
+          return new Long(tweet1.posted).compareTo(new Long(tweet2.posted));
+ 
+          //descending order
+          //return fruitName2.compareTo(fruitName1);
+        }
+ 
+    };
 
     public TwitterHandler() {
         this.user_subs = new HashMap<String, List<String>> ();
@@ -165,7 +179,7 @@ public class TwitterHandler implements Twitter.Iface {
                 allTweets.addAll(readTweetsByUser(sub, howmany));
             }
 
-            // TODO: sort tweets by posted time
+            Collections.sort(allTweets, TweetComparator);
 
             //only take the top 'howmany' number of tweets
             int tweetsToRead = (allTweets.size() < howmany) ? allTweets.size() : howmany;

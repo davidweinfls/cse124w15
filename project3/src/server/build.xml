@@ -4,7 +4,7 @@
 <property name="src" location="src" />
 <property name="gen" location="gen-java" />
 <property name="build" location="build" />
-<property name="cpath" location="/usr/share/java/thrift.jar:/usr/local/lib/slf4j-api-1.7.10.jar" />
+<property name="cpath" location="/usr/share/java/thrift-0.9.0.jar:/usr/local/lib/slf4j-api-1.7.10.jar" />
 
 <target name="init">
 <tstamp />
